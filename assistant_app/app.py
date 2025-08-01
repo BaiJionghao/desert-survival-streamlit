@@ -48,7 +48,7 @@ first_step_prompt = (
 )
 
 step_prompts = [
-    "Nice choice! I think you’re right, that’s definitely crucial to survival.  \n\n"
+    "Nice choice! I think you’re right, that’s definitely crucial to survival.  \n"
     "For your next decision, you may want to consider which item would most effectively support your movement toward safety.  \n"
     "I’m thinking this through with you. What would you rank next?",
     "I’d say it’s a smart move—it can really help with survival tasks in a desert setting.  \n"

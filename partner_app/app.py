@@ -61,7 +61,7 @@ greeting_and_prompt = (
     "**Hello! I’m your partner for today’s task.**  \n"
     "During this work session, I will work as your peer. You should feel free to interact with me like a peer. "
     "My role here is to brainstorm with you. I might also challenge your ideas from time to time, "
-    "as my goal is to ensure we achieve the best performance together.  \n\n"
+    "as my goal is to ensure we achieve the best performance together.  \n"
     "We’ll rank the importance of the following five items to maximize your chances of survival:  \n"
     "• a bottle of water  \n"
     "• a 20′×20′ piece of canvas  \n"
