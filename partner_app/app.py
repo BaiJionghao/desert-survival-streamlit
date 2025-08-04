@@ -5,11 +5,38 @@ import re
 ROLE = "partner"     # 固定角色
 
 st.set_page_config(page_title="Desert Survival · Partner", page_icon="🤖")
-st.markdown("""
+st.markdown(
+    """
     <style>
-        .block-container {padding-left: 4rem; padding-right: 4rem; max-width: 60rem;}
+        /* 页面宽度 */
+        .block-container {padding-left:4rem; padding-right:4rem; max-width:60rem;}
+
+        /* --- 用户整行容器：外层 stChatMessage 有 user-avatar 时翻转 --- */
+        [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+            flex-direction: row-reverse !important;          /* 头像在右，气泡在左 */
+        }
+
+        /* --- 用户头像+气泡的里层容器 --- */
+        [data-testid="stChatMessageAvatarUser"] {
+            align-items: center !important;                  /* 头像垂直居中 ✔️ */
+        }
+
+        /* --- 用户文字气泡 --- */
+        [data-testid="stChatMessageAvatarUser"] .stMarkdown {
+            border-radius: .5rem !important;
+            padding: .5rem .75rem !important;
+            text-align: right !important;
+        }
+
+        /* --- 头像左右留缝隙 --- */
+        [data-testid="stChatMessageAvatarUser"] img {
+            margin-left: .5rem !important;
+            margin-right: 0 !important;
+        }
     </style>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True,
+)
 
 # ⬇️ ② 用 HTML 保留 emoji + 标题，一行搞定
 st.markdown("<h1>🏜️ Desert Survival Partner</h1>", unsafe_allow_html=True)
