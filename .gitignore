@@ -1,0 +1,11 @@
+# 忽略本地的 Streamlit secrets 文件
+.streamlit/secrets.toml
+
+# 忽略 Python 缓存文件
+__pycache__/
+*.pyc
+*.pyo
+
+# 忽略虚拟环境目录
+venv/
+.env/
