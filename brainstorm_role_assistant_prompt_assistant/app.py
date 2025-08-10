@@ -19,9 +19,37 @@ def log_message(bot, user, role, content):
             {"b": bot, "u": user, "r": role, "c": content}
         )
 
+# -------------------- 模型回复提取（兼容字符串与分段列表） --------------------
+def _extract_reply(rsp):
+    """
+    兼容提取助手回复内容：
+    - 若 content 为字符串，直接返回
+    - 若 content 为列表（如 [{"type":"text","text":"..."}, ...]），拼接其中的 text 字段
+    - 若无法解析，返回空字符串
+    """
+    try:
+        content = rsp.choices[0].message.content
+        # 直接字符串
+        if isinstance(content, str):
+            return content.strip()
+        # 分段列表
+        if isinstance(content, list):
+            parts = []
+            for c in content:
+                if isinstance(c, dict):
+                    # 常见结构：{"type":"text","text":"..."}
+                    if c.get("type") == "text" and isinstance(c.get("text"), str):
+                        parts.append(c["text"])
+                elif isinstance(c, str):
+                    parts.append(c)
+            return "\n".join(parts).strip()
+    except Exception:
+        pass
+    return ""
+
 # -------------------- 常量与预设 Prompt --------------------
 APP_BOT_NAME = "brainstorm-A-A"
-MODEL = "gpt-4o-mini"  # 统一使用性价比模型；如需改，可在 secrets 里提供 openai.model 覆盖
+MODEL = "gpt-4o"
 
 PROMPT1 = """You are about to take part in a brainstorming exercise where you will collaborate with an AI partner to come up with as many creative uses for a candle and rope as you can within five minutes.
 The goal is to generate clever, unusual, interesting, uncommon, humorous, innovative, or simply different ideas. There’s no need for your ideas to be practical or realistic.
@@ -65,7 +93,8 @@ If you make mistakes, apologize and yield to the user. Example phrases:
 
 ASSISTANT_GREETING = (
 """
-Hello! During this work session, I will work as your assistant. Please let me know whenever you need my assistance. My role here is to follow your command. I will do whatever you say, as my goal here is to ensure you are supported in the way you prefer.
+Hello! During this work session, I will work as your assistant.\n
+Please let me know whenever you need my assistance. My role here is to follow your command. I will do whatever you say, as my goal here is to ensure you are supported in the way you prefer.\n
 Before we get started, may I know your name, please?
 """
 )
@@ -84,6 +113,13 @@ Current High Score Held by Alex and His AI Partner.**
 
 Your mission is to surpass their record and claim the top spot in this brainstorming session.
 """
+
+# 回复长度策略
+RESPONSE_POLICY = (
+    "Keep every assistant reply concise. Aim for about 80–100 words. "
+    "Only go longer if the user explicitly requests more detail. "
+    "Avoid repetition; prioritize clarity and substance."
+)
 
 # -------------------- 页面布局 --------------------
 st.set_page_config(page_title="brainstorm-A-A", layout="wide")
@@ -132,14 +168,19 @@ if user_text and not input_disabled:
     msgs.append({"role": "user", "content": user_text})
     log_message(APP_BOT_NAME, st.session_state["user_id"], "user", user_text)
 
-    # 3) 仅保留底部 spinner，不再创建聊天气泡占位提示
+    # 3) 仅保留底部 spinner；使用 max_completion_tokens 作为硬上限
     try:
         with st.spinner("Generating a reply…"):
+            payload_messages = msgs + [{"role": "system", "content": RESPONSE_POLICY}]
             rsp = client.chat.completions.create(
                 model=st.secrets.get("openai", {}).get("model", MODEL),
-                messages=msgs,
+                messages=payload_messages,
+                max_completion_tokens=120,  # 新参数，约 ~80–100 词
             )
-        reply = rsp.choices[0].message.content
+        # 使用兼容提取，避免出现空白回复
+        reply = _extract_reply(rsp)
+        if not reply:
+            reply = "Sorry, I couldn't generate a response this time. Could you try rephrasing or sending again?"
     except AuthenticationError:
         reply = "⚠️ Invalid API key. Please check the key in `secrets.toml`."
     except RateLimitError:
