@@ -96,16 +96,10 @@ def _parse_ranked_items(text: str):
 def _parse_unordered_items_in_order(text: str):
     """
     用户不带编号时：按出现顺序提取10件物品（基于别名）。
-    规则：
-      - 使用最长优先的别名匹配，避免“水”吞掉“淡水”。
-      - 仅在两侧为分隔符/边界时计入，减少普通句子误匹配。
-      - 去重：同一物品取首次出现。
-    返回：按顺序的物品列表（最多10个）。
     """
     if not text:
         return []
 
-    # 构造“最长优先”的别名模式
     alias2key = {}
     all_aliases = []
     for k, aliases in ITEM_ALIASES.items():
@@ -115,10 +109,8 @@ def _parse_unordered_items_in_order(text: str):
     all_aliases = sorted(set(all_aliases), key=len, reverse=True)
     pattern = re.compile("|".join(map(re.escape, all_aliases)))
 
-    ordered = []
-    seen = set()
-    s = text
-    i = 0
+    ordered, seen = [], set()
+    s, i = text, 0
     while i < len(s):
         m = pattern.search(s, i)
         if not m:
@@ -126,13 +118,10 @@ def _parse_unordered_items_in_order(text: str):
         start, end = m.span()
         prev_ch = s[start-1] if start > 0 else ""
         next_ch = s[end] if end < len(s) else ""
-
-        # 检查边界（前后是分隔符或边界）
         prev_ok = (start == 0) or (prev_ch in SEPS)
         next_ok = (end == len(s)) or (next_ch in SEPS)
         if prev_ok and next_ok:
-            alias = m.group(0)
-            key = alias2key.get(alias)
+            key = alias2key.get(m.group(0))
             if key and key not in seen:
                 seen.add(key)
                 ordered.append(key)
@@ -140,26 +129,22 @@ def _parse_unordered_items_in_order(text: str):
                     break
             i = end
         else:
-            # 不满足边界，继续向后
             i = start + 1
-
     return ordered
 
 def detect_task_completed(latest_text: str, by_user: bool = False) -> bool:
     """
     判定任务完成：
-      1) 优先：存在编号 1..10（或①..⑩）且各对应到10个不同物品。
+      1) 编号 1..10（或①..⑩）且各对应到10个不同物品；
       2) 仅当 by_user=True 时，允许“无序输入模式”：按出现顺序提取到10个不同物品。
     """
     nums, goods, _ = _parse_ranked_items(latest_text)
     if len(nums) == 10 and all(n in nums for n in range(1, 11)) and len(goods) == 10:
         return True
-
     if by_user:
         ordered = _parse_unordered_items_in_order(latest_text)
         if len(ordered) == 10:
             return True
-
     return False
 
 # -------------------- 常量与预设 --------------------
@@ -197,39 +182,28 @@ PROMPT_SYSTEM = """
 14.请正常展示回答内容。
 """
 
-ASSISTANT_GREETING = """
-你好呀，我们现在要一起完成“荒岛求生物品排序”的协作任务 🏝️
-
-情境：你们乘坐的飞机在荒岛坠毁，机长确认救援需 3 天后到达。  
-可用物品（10 件）：打火机、压缩饼干×3、淡水5L、信号镜、鲨鱼驱赶剂、尼龙绳10m、塑料布2m×2m、匕首、急救包、渔网。  
-任务：请把这 10 件物品按“提升生存几率的重要性”从高到低排序。
-
-我们一步一步来，不着急～先输入“你好”开始聊吧 👋
-"""
+# —— 需求1：删除开头机器人说的话（保留变量但不使用） —— 
+ASSISTANT_GREETING = ""  # 不再注入到会话
 
 SIDEBAR_TEXT = """
-你们乘坐的飞机在荒岛坠毁，机长确认救援需3天后到达。以下是在残骸中找到的10件物品：\n
-• 打火机  
-• 压缩饼干×3  
-• 淡水5L  
-• 信号镜  
-• 鲨鱼驱赶剂  
-• 尼龙绳10m  
-• 塑料布2m×2m  
+你们乘坐的飞机在荒岛坠毁，机长确认救援需3天后到达。以下是在残骸中找到的10件物品：
+
+• 打火机    
+• 压缩饼干×3    
+• 淡水5L    
+• 信号镜    
+• 鲨鱼驱赶剂    
+• 尼龙绳10m     
+• 塑料布2m×2m   
 • 匕首  
-• 急救包  
+• 急救包    
 • 渔网
 
-您的任务是与一位AI伙伴协作，将以下10件物品按重要性排序，以最大限度提升你的生存几率。
+您的任务是与一位AI伙伴协作，将这10件物品按重要性排序，以最大限度提升你的生存几率。
 
-您将有五分钟时间进行讨论与准备。讨论结束后，请提交你的排序。
+您将有七分钟时间进行讨论与准备。讨论结束后，请提交你的排序。
 
-**⚠️挑战即将开始！**  
-基于专业评估，生存专家已形成了“最优生存策略排序”。  
-你的排序结果将与专家答案进行匹配度对比，匹配度越高代表生存策略越有效。  
-请认真思考，争取获得最佳匹配结果！
-
-请输入“你好”开启对话！
+请输入“<span style="color:#ff4d4f;font-weight:600;">你好</span>”开启对话！
 
 🔔温馨提示：如果遇到机器人卡顿，可以选择重新发送消息。
 """
@@ -240,25 +214,29 @@ st.set_page_config(page_title="flight-S-P", layout="wide")
 # 状态初始化
 if "user_id" not in st.session_state:
     st.session_state["user_id"] = f"session-{uuid.uuid4().hex[:8]}"
+
+# —— 只注入 system（需求1） ——
 if "messages" not in st.session_state:
     st.session_state["messages"] = [
         {"role": "system", "content": PROMPT_SYSTEM},
-        {"role": "assistant", "content": ASSISTANT_GREETING},
     ]
-    log_message(APP_BOT_NAME, st.session_state["user_id"], "assistant", ASSISTANT_GREETING)
+    # 不再记录开场白
+
 if "is_generating" not in st.session_state:
     st.session_state["is_generating"] = False
 if "finished" not in st.session_state:
     st.session_state["finished"] = False
 if "finished_reason" not in st.session_state:
     st.session_state["finished_reason"] = None
-# 倒计时：首次进入即开始 5 分钟
+
+# —— 需求2：倒计时改为 7 分钟 ——
 if "countdown_end" not in st.session_state:
-    st.session_state["countdown_end"] = datetime.now() + timedelta(minutes=5)
+    st.session_state["countdown_end"] = datetime.now() + timedelta(minutes=7)
 
 # -------------------- 侧栏：说明 + 倒计时（按主题文字色渲染） --------------------
 with st.sidebar:
-    st.markdown(SIDEBAR_TEXT)
+    # —— 需求3：侧边栏“你好”标红需要允许HTML ——
+    st.markdown(SIDEBAR_TEXT, unsafe_allow_html=True)
 
     now = datetime.now()
     time_left_sec = max(0, int((st.session_state["countdown_end"] - now).total_seconds()))
@@ -271,7 +249,7 @@ with st.sidebar:
         <style>
           body {{ background: transparent; margin: 0; }}
           #timer {{
-            color: {fallback_color};   /* 首次渲染兜底 */
+            color: {fallback_color};
             font-size: 20px;
             font-weight: 700;
             margin-top: 8px;
@@ -284,17 +262,15 @@ with st.sidebar:
             var remain = {time_left_sec};
             var el = document.getElementById('timer');
 
-            // 从父页面容器读取真实文字色（随系统 theme 变化）
             function applyColorFromParent(){{
               try {{
                 var frame = window.frameElement;
                 if (frame && frame.parentElement) {{
                   var c = getComputedStyle(frame.parentElement).color;
                   if (c && c !== 'rgba(0, 0, 0, 0)') {{
-                    el.style.color = c;   // 与侧栏文字完全一致
+                    el.style.color = c;
                   }}
                 }}
-                // 如果父容器不可读，则按系统深浅色选择
                 if (!el.style.color) {{
                   var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
                   el.style.color = isDark ? '#FAFAFA' : '#31333F';
@@ -342,7 +318,7 @@ user_text = st.chat_input(placeholder, disabled=input_disabled)
 
 if st.session_state["finished"]:
     if st.session_state["finished_reason"] == "time":
-        st.warning("⛔ 五分钟到，讨论结束。请提交最终排序或刷新页面重新开始。")
+        st.warning("⛔ 七分钟到，讨论结束。请刷新页面重新开始。")  # 文案同步为 7 分钟
     elif st.session_state["finished_reason"] == "completed":
         st.success("✅ 已检测到你提交了完整的 10 项排序，讨论结束。")
 
@@ -352,7 +328,7 @@ if user_text and not input_disabled:
     msgs.append({"role": "user", "content": user_text})
     log_message(APP_BOT_NAME, st.session_state["user_id"], "user", user_text)
 
-    # 1) 用户此条就给出最终排序 -> 直接结束（编号或无序两种模式）
+    # 用户此条就给出最终排序 -> 直接结束（编号或无序两种模式）
     if detect_task_completed(user_text, by_user=True):
         st.session_state["finished"] = True
         st.session_state["finished_reason"] = "completed"
@@ -361,7 +337,6 @@ if user_text and not input_disabled:
         log_message(APP_BOT_NAME, st.session_state["user_id"], "assistant", done_msg)
         st.rerun()
 
-    # 2) 否则继续与模型对话
     try:
         st.session_state["is_generating"] = True
         with st.spinner("思考并生成回复中…"):
