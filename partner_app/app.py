@@ -1,6 +1,7 @@
-import random
 import streamlit as st
 import re
+import time
+import random
 
 ROLE = "partner"     # 固定角色
 
@@ -115,8 +116,24 @@ if "messages" not in st.session_state:
     st.session_state.stage = 0
     st.session_state.chosen = []  # 已选择的 item 名称
 
+# ⬇️ 新增：启动时间与超时标记（只初始化一次）
+if "start_time" not in st.session_state:
+    st.session_state.start_time = time.time()
+if "time_up" not in st.session_state:
+    st.session_state.time_up = False
+
+# ⬇️ 新增：每次刷新检查是否超时（未完成对话且超过5分钟）
+if (not st.session_state.time_up) and (st.session_state.stage != 99):
+    elapsed = time.time() - st.session_state.start_time
+    if elapsed >= 300:
+        st.session_state.time_up = True
+
 # ----------------- 工具函数 -----------------
 def append(role: str, content: str):
+    # 在“新生成的助手回复”前显示随机 3-5 秒的加载动画（历史回显不走这个函数）
+    if role == "assistant":
+        with st.spinner("Generating a reply..."):
+            time.sleep(random.uniform(3, 5))
     st.session_state.messages.append({"role": role, "content": content})
     with st.chat_message(role):
         st.markdown(content)
@@ -126,11 +143,23 @@ for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
+# ⬇️ 新增：若已到时间且未完成，直接在页面输出提示
+if st.session_state.time_up and st.session_state.stage != 99:
+    st.warning(
+        "⛔ The time limit has ended. Please enter the final ranking in the text box below."
+    )
+
 # ----------------- 主逻辑 -----------------
-disabled = st.session_state.stage == 99
+# ⬇️ 修改：超时也会禁用输入框
+disabled = (st.session_state.stage == 99) or st.session_state.get("time_up", False)
+
 if user_input := st.chat_input("Your message…", disabled=disabled):
     append("user", user_input)
     lowered = user_input.strip().lower()
+
+    # 若已超时则不再处理任何逻辑（防御性判断，通常不会触发，因为已禁用输入框）
+    if st.session_state.get("time_up", False):
+        st.stop()
 
     # -------- 等待 OK --------
     if st.session_state.stage == 0:

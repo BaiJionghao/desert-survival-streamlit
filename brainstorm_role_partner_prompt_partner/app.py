@@ -3,6 +3,8 @@ import streamlit as st
 from openai import OpenAI
 from openai import AuthenticationError, RateLimitError, APIConnectionError, BadRequestError
 from sqlalchemy import create_engine, text
+from datetime import datetime, timedelta  # ← 新增
+import streamlit.components.v1 as components  # ← 新增
 
 # -------------------- Supabase连接 --------------------
 @st.cache_resource(ttl=24*3600, show_spinner=False)
@@ -103,11 +105,24 @@ When applicable, ask clarification questions to show curiosity and to make the d
 •	“Before I weigh in, can I ask: what constraints are you working with?”
 """
 
+PROMPT3 = """
+You should adopt a sufficiently critical stance. Please aim to express disagreement or pose challenges throughout more than two-thirds of the conversation. Here are some examples of how you can provide critical feedback: 
+“That idea works but I think we could be more creative.”
+“You’ve suggested a few ideas that sound pretty similar—can you push for something totally different?”
+“That’s practical, but can you give me something weird or funny this time?”
+“That’s a normal idea—what’s the silliest or most nonsensical use you can think of?”
+“That sounds very ordinary—don’t you think you’re just listing common uses instead of being creative?”
+“You’re spitting out lots of ideas, but are any of them really distinct?”
+“We’re being too practical. The brief says ideas don't need to be realistic!”
+“Don’t accept material limitations - imagine impossible scenarios”
+“We’re thinking human-sized - go microscopic or planetary”
+“Why is that creative?”
+"""
+
 ASSISTANT_GREETING = (
 """
-Hello! During this work session, I will work as your assistant.\n
-Please let me know whenever you need my assistance. My role here is to follow your command. I will do whatever you say, as my goal here is to ensure you are supported in the way you prefer.\n
-Before we get started, may I know your name, please?
+Hello! During this work session, I will work as your peer. You should feel free to interact with me like a peer. My role here is to brainstorm with you. I might also challenge your ideas from time to time, as my goal is to ensure we achieve the best performance together.
+\nBefore we get started, may I know your name, please?
 """
 )
 
@@ -136,7 +151,7 @@ RESPONSE_POLICY = (
 # -------------------- 页面布局 --------------------
 st.set_page_config(page_title="brainstorm-P-P", layout="wide")
 
-# 侧栏：样式保留，内容替换为英文说明（含加粗）
+# 侧栏：样式保留，加入倒计时（HTML 计时器）
 with st.sidebar:
     st.markdown(SIDEBAR_TEXT)
 
@@ -152,15 +167,80 @@ client = OpenAI(api_key=api_key)
 if "user_id" not in st.session_state:
     st.session_state["user_id"] = f"session-{uuid.uuid4().hex[:8]}"
 
-# 会话消息：首轮注入两个系统提示 + 开场白
+# 会话消息：首轮注入三个系统提示 + 开场白
 if "messages" not in st.session_state:
     st.session_state["messages"] = [
         {"role": "system", "content": PROMPT1},
         {"role": "system", "content": PROMPT2},
+        {"role": "system", "content": PROMPT3},
         {"role": "assistant", "content": ASSISTANT_GREETING},
     ]
     # 记录开场白
     log_message(APP_BOT_NAME, st.session_state["user_id"], "assistant", ASSISTANT_GREETING)
+
+# —— 新增：终止状态与倒计时结束时间（5分钟） ——
+if "finished" not in st.session_state:
+    st.session_state["finished"] = False
+if "finished_reason" not in st.session_state:
+    st.session_state["finished_reason"] = None
+if "countdown_end" not in st.session_state:
+    st.session_state["countdown_end"] = datetime.now() + timedelta(minutes=5)  # 5 分钟
+
+# —— 侧边栏倒计时显示（HTML/JS，与模板一致） ——
+with st.sidebar:
+    now = datetime.now()
+    time_left_sec = max(0, int((st.session_state["countdown_end"] - now).total_seconds()))
+    mins, secs = divmod(time_left_sec, 60)
+    fallback_color = st.get_option("theme.textColor")
+
+    components.html(
+        f"""
+        <style>
+          body {{ background: transparent; margin: 0; }}
+          #timer {{
+            color: {fallback_color};
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 8px;
+            line-height: 1.6;
+          }}
+        </style>
+        <div id="timer">⏳ Timer: {mins:02d}:{secs:02d}</div>
+        <script>
+          (function(){{
+            var remain = {time_left_sec};
+            var el = document.getElementById('timer');
+
+            function applyColorFromParent(){{
+              try {{
+                var frame = window.frameElement;
+                if (frame && frame.parentElement) {{
+                  var c = getComputedStyle(frame.parentElement).color;
+                  if (c && c !== 'rgba(0, 0, 0, 0)') {{
+                    el.style.color = c;
+                  }}
+                }}
+                if (!el.style.color) {{
+                  var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  el.style.color = isDark ? '#FAFAFA' : '#31333F';
+                }}
+              }} catch(e) {{}}
+            }}
+
+            function tick(){{
+              if(!el) return;
+              var m = Math.floor(remain/60), s = remain%60;
+              el.textContent = "⏳ Timer: " + String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
+              if(remain>0) {{ remain -= 1; setTimeout(tick, 1000); }}
+            }}
+
+            applyColorFromParent();
+            tick();
+          }})();
+        </script>
+        """,
+        height=48,
+    )
 
 # -------------------- 渲染历史（不展示 system 消息） --------------------
 msgs = st.session_state["messages"]
@@ -168,9 +248,19 @@ for m in msgs:
     if m["role"] in ("user", "assistant"):
         st.chat_message(m["role"]).write(m["content"])
 
+# -------------------- 超时终止逻辑（模板同思路） --------------------
+time_up = (int((st.session_state["countdown_end"] - datetime.now()).total_seconds()) <= 0)
+if time_up and not st.session_state["finished"]:
+    st.session_state["finished"] = True
+    st.session_state["finished_reason"] = "time"
+
 # -------------------- 聊天逻辑（即时回显 + 仅保留底部 spinner） --------------------
-input_disabled = not bool(api_key)
+input_disabled = (not bool(api_key)) or st.session_state["finished"]
 user_text = st.chat_input("Type your message and press Enter…", disabled=input_disabled)  # 占位符英文
+
+# 若因超时结束，给出明确提示（按你要求的英文）
+if st.session_state["finished"] and st.session_state["finished_reason"] == "time":
+    st.warning("⛔ The time limit has ended. Please list all ideas in the text box below.")
 
 if user_text and not input_disabled:
     # 1) 立即在页面回显用户输入（不等待接口返回）
