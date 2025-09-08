@@ -53,7 +53,7 @@ def _extract_reply(rsp):
 APP_BOT_NAME = "brainstorm-A-P"
 MODEL = "gpt-4o"
 
-PROMPT1 = """You are about to take part in a brainstorming exercise where you will collaborate with an AI partner to come up with as many creative uses for a candle and rope as you can within five minutes.
+PROMPT1 = """You are about to take part in a brainstorming exercise where you will collaborate with an AI partner to come up with as many creative uses for a candle and rope as you can for at least 5 minutes.
 The goal is to generate clever, unusual, interesting, uncommon, humorous, innovative, or simply different ideas. There’s no need for your ideas to be practical or realistic.
 • You can submit as many unique ideas as you like.
 • Ensure that each idea is distinct and not repeated.
@@ -129,7 +129,7 @@ Before we get started, may I know your name, please?
 
 # 侧栏文本（指定行加粗）
 SIDEBAR_TEXT = """
-You are about to take part in a brainstorming exercise where you will collaborate with an AI partner to come up with as many creative uses for a candle and rope as you can within five minutes.  
+You are about to take part in a brainstorming exercise where you will collaborate with an AI partner to come up with as many creative uses for a candle and rope as you can for at least 5 minutes.  
 The goal is to generate clever, unusual, interesting, uncommon, humorous, innovative, or simply different ideas. There’s no need for your ideas to be practical or realistic.
 
 • You can submit as many unique ideas as you like.  
@@ -179,69 +179,14 @@ if "messages" not in st.session_state:
     # 记录开场白
     log_message(APP_BOT_NAME, st.session_state["user_id"], "assistant", ASSISTANT_GREETING)
 
-# —— 新增：终止状态与倒计时结束时间（5分钟） ——
+# —— 新增：终止状态 ——
 if "finished" not in st.session_state:
     st.session_state["finished"] = False
 if "finished_reason" not in st.session_state:
     st.session_state["finished_reason"] = None
-if "countdown_end" not in st.session_state:
-    st.session_state["countdown_end"] = datetime.now() + timedelta(minutes=5)  # 5 分钟
 
-# —— 侧边栏倒计时显示（HTML/JS，与模板一致） ——
 with st.sidebar:
-    now = datetime.now()
-    time_left_sec = max(0, int((st.session_state["countdown_end"] - now).total_seconds()))
-    mins, secs = divmod(time_left_sec, 60)
-    fallback_color = st.get_option("theme.textColor")
-
-    components.html(
-        f"""
-        <style>
-          body {{ background: transparent; margin: 0; }}
-          #timer {{
-            color: {fallback_color};
-            font-size: 20px;
-            font-weight: 700;
-            margin-top: 8px;
-            line-height: 1.6;
-          }}
-        </style>
-        <div id="timer">⏳ Timer: {mins:02d}:{secs:02d}</div>
-        <script>
-          (function(){{
-            var remain = {time_left_sec};
-            var el = document.getElementById('timer');
-
-            function applyColorFromParent(){{
-              try {{
-                var frame = window.frameElement;
-                if (frame && frame.parentElement) {{
-                  var c = getComputedStyle(frame.parentElement).color;
-                  if (c && c !== 'rgba(0, 0, 0, 0)') {{
-                    el.style.color = c;
-                  }}
-                }}
-                if (!el.style.color) {{
-                  var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  el.style.color = isDark ? '#FAFAFA' : '#31333F';
-                }}
-              }} catch(e) {{}}
-            }}
-
-            function tick(){{
-              if(!el) return;
-              var m = Math.floor(remain/60), s = remain%60;
-              el.textContent = "⏳ Timer: " + String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
-              if(remain>0) {{ remain -= 1; setTimeout(tick, 1000); }}
-            }}
-
-            applyColorFromParent();
-            tick();
-          }})();
-        </script>
-        """,
-        height=48,
-    )
+    pass
 
 # -------------------- 渲染历史（不展示 system 消息） --------------------
 msgs = st.session_state["messages"]
@@ -249,19 +194,21 @@ for m in msgs:
     if m["role"] in ("user", "assistant"):
         st.chat_message(m["role"]).write(m["content"])
 
-# -------------------- 超时终止逻辑（模板同思路） --------------------
-time_up = (int((st.session_state["countdown_end"] - datetime.now()).total_seconds()) <= 0)
-if time_up and not st.session_state["finished"]:
-    st.session_state["finished"] = True
-    st.session_state["finished_reason"] = "time"
+# -------------------- 超时终止逻辑（移除时间限制） --------------------
 
 # -------------------- 聊天逻辑（即时回显 + 仅保留底部 spinner） --------------------
 input_disabled = (not bool(api_key)) or st.session_state["finished"]
-user_text = st.chat_input("Type your message and press Enter…", disabled=input_disabled)  # 占位符英文
+placeholder = (
+    "Type your message and press Enter…"
+    if not input_disabled
+    else "⛔ Chat has ended. Input is disabled."
+)
+user_text = st.chat_input(placeholder, disabled=input_disabled)
 
-# 若因超时结束，给出明确提示（按你要求的英文）
-if st.session_state["finished"] and st.session_state["finished_reason"] == "time":
-    st.warning("⛔ The time limit has ended. Please list all ideas in the text box below.")
+if input_disabled and st.session_state.get("finished", False):
+    st.info("⛔ Chat has ended. Input is disabled.")
+
+# 移除超时提示
 
 if user_text and not input_disabled:
     # 1) 立即在页面回显用户输入（不等待接口返回）

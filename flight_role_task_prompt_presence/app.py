@@ -209,7 +209,7 @@ SIDEBAR_TEXT = """
 
 您的任务是与一位AI伙伴协作，将这10件物品按重要性排序，以最大限度提升你的生存几率。
 
-您将有七分钟时间进行讨论与准备。讨论结束后，请提交你的排序。
+您将有最少5分钟时间进行讨论与准备。讨论结束后，请提交你的排序。
 
 请输入“<span style="color:#ff4d4f;font-weight:600;">你好</span>”开启对话！
 
@@ -239,69 +239,9 @@ if "finished" not in st.session_state:
 if "finished_reason" not in st.session_state:
     st.session_state["finished_reason"] = None
 
-# —— 需求2：倒计时改为 7 分钟 ——
-if "countdown_end" not in st.session_state:
-    st.session_state["countdown_end"] = datetime.now() + timedelta(minutes=7)
-
-# -------------------- 侧栏：说明 + 倒计时（按主题文字色渲染） --------------------
 with st.sidebar:
     # —— 需求3：侧边栏“你好”标红需要允许HTML ——
     st.markdown(SIDEBAR_TEXT, unsafe_allow_html=True)
-
-    now = datetime.now()
-    time_left_sec = max(0, int((st.session_state["countdown_end"] - now).total_seconds()))
-    mins, secs = divmod(time_left_sec, 60)
-
-    fallback_color = st.get_option("theme.textColor")
-
-    components.html(
-        f"""
-        <style>
-          body {{ background: transparent; margin: 0; }}
-          #timer {{
-            color: {fallback_color};
-            font-size: 20px;
-            font-weight: 700;
-            margin-top: 8px;
-            line-height: 1.6;
-          }}
-        </style>
-        <div id="timer">⏳ 倒计时：{mins:02d}:{secs:02d}</div>
-        <script>
-          (function(){{
-            var remain = {time_left_sec};
-            var el = document.getElementById('timer');
-
-            function applyColorFromParent(){{
-              try {{
-                var frame = window.frameElement;
-                if (frame && frame.parentElement) {{
-                  var c = getComputedStyle(frame.parentElement).color;
-                  if (c && c !== 'rgba(0, 0, 0, 0)') {{
-                    el.style.color = c;
-                  }}
-                }}
-                if (!el.style.color) {{
-                  var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  el.style.color = isDark ? '#FAFAFA' : '#31333F';
-                }}
-              }} catch(e) {{}}
-            }}
-
-            function tick(){{
-              if(!el) return;
-              var m = Math.floor(remain/60), s = remain%60;
-              el.textContent = "⏳ 倒计时：" + String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
-              if(remain>0) {{ remain -= 1; setTimeout(tick, 1000); }}
-            }}
-
-            applyColorFromParent();
-            tick();
-          }})();
-        </script>
-        """,
-        height=48,
-    )
 
 # -------------------- Key 与客户端（DeepSeek） --------------------
 ds_api_key = st.secrets.get("openai", {}).get("ds_api_key", "")
@@ -316,20 +256,13 @@ for m in msgs:
         st.chat_message(m["role"]).write(m["content"])
 
 # -------------------- 聊天逻辑 --------------------
-# 终止条件：时间耗尽 或 任务完成
-time_up = (int((st.session_state["countdown_end"] - datetime.now()).total_seconds()) <= 0)
-if time_up and not st.session_state["finished"]:
-    st.session_state["finished"] = True
-    st.session_state["finished_reason"] = "time"
 
 input_disabled = (not bool(ds_api_key)) or st.session_state["finished"]
 placeholder = "输入你的想法，按 Enter 发送…" if not input_disabled else "⛔ 讨论结束。请在下方文本框提交您的最终排序。"
 user_text = st.chat_input(placeholder, disabled=input_disabled)
 
 if st.session_state["finished"]:
-    if st.session_state["finished_reason"] == "time":
-        st.warning("⛔ 七分钟到，讨论结束。请在下方文本框提交您的最终排序。")  # 文案同步为 7 分钟
-    elif st.session_state["finished_reason"] == "completed":
+    if st.session_state["finished_reason"] == "completed":
         st.success("✅ 已检测到你提交了完整的 10 项排序，讨论结束。")
 
 # --- 处理用户输入（仅在未终止时进行） ---
