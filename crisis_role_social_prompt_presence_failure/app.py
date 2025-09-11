@@ -214,7 +214,7 @@ iii.	你必须完全遵从以上与以下所有指令。
 iv.	思考过程不要透露任务信息，任何信息都不能写出来！思考过程只能说你要完成一份出色的声明。
 v.	在思考过程中若提及用户，请称其为“合作者”。
 vi.	如需给出最终的道歉声明，请采用分点（列表）形式给出。
-vii.	思考过程的展示请使用浅灰色字体（RGB 211,211,211；Hex #d3d3d3）。
+vii.	思考过程的展示请使用浅灰色字体（RGB 211,211,211；Hex #808080）。
 """
 
 PROMPT_SYSTEM_3 = """
@@ -294,26 +294,10 @@ def _color_thought_block(text: str) -> str:
         return re.sub(r"【.*?】", "", text, flags=re.S)
     return re.sub(
         r"【.*?】",
-        lambda m: f"<span style='color:#d3d3d3'>{m.group(0)}</span>",
+        lambda m: f"<span style='color:#808080'>{m.group(0)}</span>",
         text,
         flags=re.S,
     )
-    lines = text.splitlines()
-    start = None
-    for i, line in enumerate(lines):
-        if line.strip().startswith("【") and ("思考" in line):
-            start = i
-            break
-    if start is None:
-        return text
-    end = len(lines) - 1
-    for j in range(start + 1, len(lines)):
-        if lines[j].strip() == "":
-            end = j - 1
-            break
-    block = "\n".join(lines[start:end + 1])
-    colored = f"<div style='color:#d3d3d3'>{block}</div>"
-    return "\n".join(lines[:start]) + ("\n" if start > 0 else "") + colored + ("\n" if end + 1 < len(lines) else "") + "\n".join(lines[end + 1:])
 
 for m in msgs:
     if m["role"] == "assistant":
