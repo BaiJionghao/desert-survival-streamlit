@@ -185,9 +185,6 @@ if "finished" not in st.session_state:
 if "finished_reason" not in st.session_state:
     st.session_state["finished_reason"] = None
 
-with st.sidebar:
-    pass
-
 # -------------------- 渲染历史（不展示 system 消息） --------------------
 msgs = st.session_state["messages"]
 for m in msgs:

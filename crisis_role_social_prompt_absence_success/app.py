@@ -202,7 +202,7 @@ SIDEBAR_TEXT = """
 
 一名顾客在总店用餐时，于火锅锅底中发现一只老鼠。该顾客随后将此事发布至社交媒体平台，迅速引发公众对蜀韵捞火锅的食品安全与卫生管理的广泛关注和激烈讨论。
 
-您的任务是与一位AI伙伴协作，共同制定一套的危机应对方案，以维护蜀韵捞火锅的品牌声誉。
+您的任务是与一位AI智能助手协作，共同制定一套的危机应对方案，以维护蜀韵捞火锅的品牌声誉。
 
 您将有最少5分钟时间进行讨论与准备。讨论结束后，请撰写一份危机回应声明。
 
@@ -259,10 +259,10 @@ def _should_show_thought():
 
 def _color_thought_block(text: str) -> str:
     if not _should_show_thought():
-        return re.sub(r"【.*?】", "", text, flags=re.S)
+        return re.sub(r"(【.*?】)(\s*)", "", text, flags=re.S)
     return re.sub(
-        r"【.*?】",
-        lambda m: f"<span style='color:#808080'>{m.group(0)}</span>",
+        r"(【.*?】)(\s*)",
+        lambda m: f"<span style='color:#808080'>{m.group(1)}</span>\n\n",
         text,
         flags=re.S,
     )

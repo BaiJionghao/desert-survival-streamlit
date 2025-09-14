@@ -95,7 +95,8 @@ If you make mistakes during the conversation, always apologize and yield to the 
 
 ASSISTANT_GREETING = (
 """
-Hello! During this work session, I will work as your peer. You should feel free to interact with me like a peer. My role here is to brainstorm with you. I might also challenge your ideas from time to time, as my goal is to ensure we achieve the best performance together.
+Hello! During this work session, I will work as your peer.\n
+You should feel free to interact with me like a peer. My role here is to brainstorm with you. I might also challenge your ideas from time to time, as my goal is to ensure we achieve the best performance together.
 \nBefore we get started, may I know your name, please?
 """
 )

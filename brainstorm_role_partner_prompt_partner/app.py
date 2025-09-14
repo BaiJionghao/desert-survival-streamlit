@@ -121,7 +121,8 @@ You should adopt a sufficiently critical stance. Please aim to express disagreem
 
 ASSISTANT_GREETING = (
 """
-Hello! During this work session, I will work as your peer. You should feel free to interact with me like a peer. My role here is to brainstorm with you. I might also challenge your ideas from time to time, as my goal is to ensure we achieve the best performance together.
+Hello! During this work session, I will work as your peer.\n
+You should feel free to interact with me like a peer. My role here is to brainstorm with you. I might also challenge your ideas from time to time, as my goal is to ensure we achieve the best performance together.
 \nBefore we get started, may I know your name, please?
 """
 )
@@ -150,10 +151,6 @@ RESPONSE_POLICY = (
 
 # -------------------- 页面布局 --------------------
 st.set_page_config(page_title="brainstorm-P-P", layout="wide")
-
-# 侧栏：样式保留，加入倒计时（HTML 计时器）
-with st.sidebar:
-    st.markdown(SIDEBAR_TEXT)
 
 # -------------------- Key 与客户端 --------------------
 api_key = st.secrets.get("openai", {}).get("api_key", "")

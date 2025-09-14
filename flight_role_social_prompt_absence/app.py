@@ -201,7 +201,7 @@ SIDEBAR_TEXT = """
 • 急救包    
 • 渔网
 
-您的任务是与一位AI伙伴协作，将这10件物品按重要性排序，以最大限度提升你的生存几率。
+您的任务是与一位AI智能助手协作，将这10件物品按重要性排序，以最大限度提升你的生存几率。
 
 您将有最少5分钟时间进行讨论与准备。讨论结束后，请提交你的排序。
 
@@ -244,9 +244,27 @@ client = OpenAI(api_key=ds_api_key, base_url="https://api.deepseek.com")
 
 # -------------------- 渲染历史（不展示 system） --------------------
 msgs = st.session_state["messages"]
+
+def _should_show_thought():
+    text = f"{PROMPT_SYSTEM}\n{PROMPT_SYSTEM_2}"
+    return ("禁止展示任何" not in text) and ("禁止展示任何的思考过程" not in text)
+
+def _render_with_thought(text: str) -> str:
+    import re
+    if not _should_show_thought():
+        return re.sub(r"(【.*?】)(\s*)", "", text, flags=re.S)
+    return re.sub(
+        r"(【.*?】)(\s*)",
+        lambda m: f"<span style='color:#808080'>{m.group(1)}</span>\n\n",
+        text,
+        flags=re.S,
+    )
+
 for m in msgs:
-    if m["role"] in ("user", "assistant"):
-        st.chat_message(m["role"]).write(m["content"])
+    if m["role"] == "assistant":
+        st.chat_message("assistant").markdown(_render_with_thought(m["content"]), unsafe_allow_html=True)
+    elif m["role"] == "user":
+        st.chat_message("user").write(m["content"])
 
 # -------------------- 聊天逻辑 --------------------
 

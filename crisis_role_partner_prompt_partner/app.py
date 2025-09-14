@@ -121,7 +121,8 @@ You should adopt a sufficiently critical stance. Please aim to express disagreem
 
 ASSISTANT_GREETING = (
 """
-Hello! During this work session, I will work as your peer. You should feel free to interact with me like a peer. My role here is to brainstorm with you. I might also challenge your ideas from time to time, as my goal is to ensure we achieve the best performance together.
+Hello! During this work session, I will work as your peer.\n
+You should feel free to interact with me like a peer. My role here is to brainstorm with you. I might also challenge your ideas from time to time, as my goal is to ensure we achieve the best performance together.
 \nBefore we get started, may I know your name, please?
 """
 )
@@ -187,16 +188,11 @@ if "finished" not in st.session_state:
 if "finished_reason" not in st.session_state:
     st.session_state["finished_reason"] = None
 
-with st.sidebar:
-    pass
-
 # -------------------- 渲染历史（不展示 system 消息） --------------------
 msgs = st.session_state["messages"]
 for m in msgs:
     if m["role"] in ("user", "assistant"):
         st.chat_message(m["role"]).write(m["content"])
-
-# -------------------- 超时终止逻辑（移除时间限制） --------------------
 
 # -------------------- 聊天逻辑（即时回显 + 仅保留底部 spinner） --------------------
 input_disabled = (not bool(api_key)) or st.session_state["finished"]
