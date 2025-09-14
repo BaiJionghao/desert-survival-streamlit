@@ -53,13 +53,13 @@ def _extract_reply(rsp):
 APP_BOT_NAME = "brainstorm-A-P"
 MODEL = "gpt-4o"
 
-PROMPT1 = """You are about to take part in a brainstorming exercise where you will collaborate with an AI partner to come up with as many creative uses for a candle and rope as you can for at least 5 minutes.
+PROMPT1 = """You are about to take part in a brainstorming exercise where you will collaborate with an AI assistant to come up with as many creative uses for a candle and rope as you can for at least 5 minutes.
 The goal is to generate clever, unusual, interesting, uncommon, humorous, innovative, or simply different ideas. There’s no need for your ideas to be practical or realistic.
 • You can submit as many unique ideas as you like.
 • Ensure that each idea is distinct and not repeated.
 • Feel free to think outside the box and explore unconventional uses.
 ⚠️The Challenge Awaits!
-Current High Score Held by Alex and His AI Partner. 
+Current High Score Held by Alex and His AI Assistant. 
 Your mission is to surpass their record and claim the top spot in this brainstorming session.
 """
 
@@ -129,7 +129,7 @@ Before we get started, may I know your name, please?
 
 # 侧栏文本（指定行加粗）
 SIDEBAR_TEXT = """
-You are about to take part in a brainstorming exercise where you will collaborate with an AI partner to come up with as many creative uses for a candle and rope as you can for at least 5 minutes.  
+You are about to take part in a brainstorming exercise where you will collaborate with an AI assistant to come up with as many creative uses for a candle and rope as you can for at least 5 minutes.  
 The goal is to generate clever, unusual, interesting, uncommon, humorous, innovative, or simply different ideas. There’s no need for your ideas to be practical or realistic.
 
 • You can submit as many unique ideas as you like.  
@@ -137,7 +137,7 @@ The goal is to generate clever, unusual, interesting, uncommon, humorous, innova
 • Feel free to think outside the box and explore unconventional uses.  
 
 **⚠️The Challenge Awaits!  
-Current High Score Held by Alex and His AI Partner.**  
+Current High Score Held by Alex and His AI Assistant.**  
 
 Your mission is to surpass their record and claim the top spot in this brainstorming session.
 """

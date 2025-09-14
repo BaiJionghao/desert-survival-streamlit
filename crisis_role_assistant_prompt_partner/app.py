@@ -56,7 +56,7 @@ MODEL = "gpt-4o"
 PROMPT1 = """You are a public relations practitioner at a leading PR agency. Your client, a well-known hotpot restaurant, has just encountered a crisis.
 Please read the crisis scenario below carefully:
 A customer dining at the restaurant discovered a mouse in their hotpot. They shared the incident on platform X, which quickly raised widespread public concern over the restaurant’s food safety and hygiene standards.
-Your task is to collaborate with/direct an AI partner/assistant to generate an effective crisis response to protect the restaurant’s reputation.
+Your task is to collaborate with AI assistant to generate an effective crisis response to protect the restaurant’s reputation.
 You will have at least 5 minutes to discuss and prepare your response. After the discussion, please write your final response.
 Your crisis response should include three key components: instructing information (details about the crisis and guidance on how stakeholders can protect themselves), adjusting information (corrective explanations and expressions of sympathy and concern), and a specific response strategy, such as denial, diminishment, or bolstering.
 
@@ -135,7 +135,7 @@ Please read the crisis scenario below carefully:
 
 A customer dining at the restaurant discovered a mouse in their hotpot. They shared the incident on platform X, which quickly raised widespread public concern over the restaurant’s food safety and hygiene standards.
 
-Your task is to **collaborate with/direct an AI partner/assistant** to generate an effective crisis response to protect the restaurant’s reputation.
+Your task is to **collaborate with AI assistant** to generate an effective crisis response to protect the restaurant’s reputation.
 
 You will have **at least 5 minutes to discuss** and prepare your response. After the discussion, **please write your final response.**
 
