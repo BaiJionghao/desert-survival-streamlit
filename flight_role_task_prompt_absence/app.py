@@ -152,7 +152,8 @@ APP_BOT_NAME = "flight-T-A"
 MODEL = "deepseek-chat"   # DeepSeek 聊天模型
 
 PROMPT_SYSTEM = """
-你需要和用户合作完成下面的任务。
+你需要和用户合作完成下面的任务，请称呼自己为“人工智能助手”。
+
 你们乘坐的飞机在荒岛坠毁，机长确认救援需3天后到达。以下是在残骸中找到的10件物品：
 •	打火机
 •	压缩饼干×3
@@ -200,9 +201,9 @@ SIDEBAR_TEXT = """
 • 急救包    
 • 渔网
 
-您的任务是与一位AI智能助手协作，将这10件物品按重要性排序，以最大限度提升你的生存几率。
+**您的任务是与一位人工智能助手协作，将这10件物品按重要性排序，以最大限度提升你的生存几率。**
 
-您将有最少5分钟时间进行讨论与准备。讨论结束后，请提交你的排序。
+**您将有最少5分钟时间进行讨论与准备。讨论结束后，请提交你的排序。**
 
 请输入“<span style="color:#ff4d4f;font-weight:600;">你好</span>”开启对话！
 
@@ -292,7 +293,7 @@ if user_text and not input_disabled:
 
     try:
         st.session_state["is_generating"] = True
-        with st.spinner("思考并生成回复中…"):
+        with st.spinner("生成回复中…"):
             rsp = client.chat.completions.create(
                 model=MODEL,
                 messages=msgs,
